@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Firebase Auth App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-card">
+            <h1>Register</h1>
+            <form id="registerForm" class="auth-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required minlength="6">
+                    <small>Password must be at least 6 characters long</small>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Register</button>
+            </form>
+            <div class="auth-links">
+                <p>Already have an account? <a href="login.html" class="link">Login here</a></p>
+            </div>
+            <div id="message" class="message"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBY7f5hYPU7MdzOOneLNpmH4MqwtYLJo74",
+            authDomain: "certification-3831d.firebaseapp.com",
+            projectId: "certification-3831d",
+            storageBucket: "certification-3831d.firebasestorage.app",
+            messagingSenderId: "121685576531",
+            appId: "1:121685576531:web:7e9ede8e6836d46e0b2fa6",
+            measurementId: "G-L951NLQV0P"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // Register form handler
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const messageDiv = document.getElementById('message');
+            
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                messageDiv.innerHTML = '<div class="error">Passwords do not match.</div>';
+                return;
+            }
+            
+            // Validate password length
+            if (password.length < 6) {
+                messageDiv.innerHTML = '<div class="error">Password must be at least 6 characters long.</div>';
+                return;
+            }
+            
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                
+                messageDiv.innerHTML = '<div class="success">Registration successful! Redirecting to login...</div>';
+                
+                // Redirect to login page after successful registration
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                
+            } catch (error) {
+                let errorMessage = 'Registration failed. Please try again.';
+                
+                switch (error.code) {
+                    case 'auth/email-already-in-use':
+                        errorMessage = 'An account with this email already exists.';
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = 'Invalid email address.';
+                        break;
+                    case 'auth/weak-password':
+                        errorMessage = 'Password is too weak. Please choose a stronger password.';
+                        break;
+                    case 'auth/operation-not-allowed':
+                        errorMessage = 'Email/password accounts are not enabled.';
+                        break;
+                }
+                
+                messageDiv.innerHTML = `<div class="error">${errorMessage}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
