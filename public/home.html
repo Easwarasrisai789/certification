@@ -17,6 +17,7 @@
             <div class="user-info">
                 <h2>User Information</h2>
                 <div id="userDetails" class="user-details">
+                    <p><strong>Name:</strong> <span id="userName">Loading...</span></p>
                     <p><strong>Email:</strong> <span id="userEmail">Loading...</span></p>
                     <p><strong>User ID:</strong> <span id="userId">Loading...</span></p>
                     <p><strong>Email Verified:</strong> <span id="emailVerified">Loading...</span></p>
@@ -27,6 +28,7 @@
             <div class="actions">
                 <h3>Quick Actions</h3>
                 <div class="action-buttons">
+                    <button id="verifyEmailBtn" class="btn btn-primary" style="display: none;">Verify Email Address</button>
                     <button class="btn btn-primary" onclick="alert('Profile feature coming soon!')">Edit Profile</button>
                     <button class="btn btn-primary" onclick="alert('Settings feature coming soon!')">Settings</button>
                     <button class="btn btn-primary" onclick="alert('Help feature coming soon!')">Help</button>
@@ -40,7 +42,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getAuth, onAuthStateChanged, signOut, sendEmailVerification } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
         // Firebase configuration
         const firebaseConfig = {
@@ -61,14 +63,57 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 // User is signed in
+                document.getElementById('userName').textContent = user.displayName || 'Not set';
                 document.getElementById('userEmail').textContent = user.email;
                 document.getElementById('userId').textContent = user.uid;
                 document.getElementById('emailVerified').textContent = user.emailVerified ? 'Yes' : 'No';
                 document.getElementById('lastSignIn').textContent = user.metadata.lastSignInTime ? 
                     new Date(user.metadata.lastSignInTime).toLocaleString() : 'Unknown';
+                
+                // Show verify email button if email is not verified
+                const verifyEmailBtn = document.getElementById('verifyEmailBtn');
+                if (!user.emailVerified) {
+                    verifyEmailBtn.style.display = 'inline-block';
+                    verifyEmailBtn.textContent = 'Verify Email Address';
+                } else {
+                    verifyEmailBtn.style.display = 'none';
+                }
             } else {
                 // User is signed out, redirect to login
                 window.location.href = 'login.html';
+            }
+        });
+
+        // Email verification functionality
+        document.getElementById('verifyEmailBtn').addEventListener('click', async () => {
+            const user = auth.currentUser;
+            const messageDiv = document.getElementById('message');
+            
+            if (user && !user.emailVerified) {
+                try {
+                    await sendEmailVerification(user);
+                    messageDiv.innerHTML = `
+                        <div class="success">
+                            <strong>Verification email sent!</strong><br>
+                            We've sent a verification email to <strong>${user.email}</strong>.<br>
+                            Please check your inbox and click the verification link.<br><br>
+                            <em>If you don't see the email, please check your spam folder.</em>
+                        </div>
+                    `;
+                } catch (error) {
+                    let errorMessage = 'Failed to send verification email. Please try again.';
+                    
+                    switch (error.code) {
+                        case 'auth/too-many-requests':
+                            errorMessage = 'Too many requests. Please try again later.';
+                            break;
+                        case 'auth/user-not-found':
+                            errorMessage = 'User not found. Please log in again.';
+                            break;
+                    }
+                    
+                    messageDiv.innerHTML = `<div class="error">${errorMessage}</div>`;
+                }
             }
         });
 
